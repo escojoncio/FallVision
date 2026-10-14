@@ -50,9 +50,18 @@ Deliverable: `Titanfall2.exe` (vanilla, no Northstar) reaches the main menu in f
 
 ### Gate 4 — Northstar + TF2VR + OpenXR
 Deliverable: the VR mod boots and renders stereo.
-- Northstar launcher DLLs loaded under Wine/FEX.
-- In-app OpenXR runtime (`openxr_loader` points at our runtime): swapchains → Compositor Services, poses from the headset, actions from the Sense controllers.
-- The TF2VR DLL is closed-source: our runtime must satisfy whatever subset of OpenXR it uses. Capture its calls with the OpenXR API layer on PC first, then implement that subset.
+
+What the PC installer does (from `CircuitLord/CircuitLordVRModInstaller`, MIT, and the 1.0.17 package); FallVision reproduces it in-app:
+- Northstar pinned to **v1.31.13** (`R2Northstar/Northstar/releases/download/v1.31.13/Northstar.release.v1.31.13.zip`, sha256 `e622b96e…`). `NorthstarLauncher.exe` → `<game>/Titanfall2VRLauncher.exe`; `R2Northstar/*` → `<game>/TF2VR/`.
+- Mod package from the installer repo's `mod-packages` release (`Titanfall2VR-<ver>.zip`, URL + sha256 in `manifest-v3.json`). Contents: `Titanfall2VR.dll` → `TF2VR/plugins/`, `mods/` → `TF2VR/mods/`, `launch.json`, `release.json`, plus `patches/` (bsdiff against the installed game's VPK files) and `asset_patcher.exe` which builds the game-derived mod files at install time. `xr_probe.exe` and `crash_monitor.exe` are the PC launcher's helpers; FallVision's launcher replaces them.
+- **The mod is closed source and may not be redistributed.** FallVision never bundles it: the app downloads it from the upstream URL at install time, verifies the sha256, and keeps it in the user's game folder.
+- `asset_patcher.exe` is x64; either run it under FEX at install time or reimplement the bsdiff apply step natively in the app (simpler, no emulation needed before the game runs).
+- Launch: `Titanfall2VRLauncher.exe -profile=TF2VR -novid -windowed -w 1280 -h 720 +ns_has_agreed_to_send_token 2 +ns_masterserver_hostname http://127.0.0.1:9 +ns_report_server_to_masterserver 0 +sp_not_focus_pause 0 +not_focus_sleep 0 +sound_without_focus 1` plus the `vrArguments` from `launch.json` (DoF off, vsync off, `fps_max 0`, `mat_viewportscale 1`), env `TF2VR_OPENXR=1`. Masterserver is pointed at localhost, so Northstar runs offline.
+- The mod must find real `dxgi.dll`/`d3d11.dll` (it hooks `Present`); it refuses to run if a mod dropped replacements beside the game. DXVK as Wine builtins is fine; nothing goes in the game folder.
+
+OpenXR runtime:
+- The mod embeds the OpenXR loader and honours `XR_RUNTIME_JSON`. It requests `XR_KHR_D3D11_enable`, `XR_EXT_hand_tracking`, `XR_EXT_hand_joints_motion_range`, `XR_EXT_user_presence`, `XR_KHR_visibility_mask`, `XR_KHR_win32_convert_performance_counter_time`, `XR_EXT_debug_utils`; interaction profiles `oculus/touch_controller`, `valve/index_controller`, `khr/simple_controller`.
+- Template: Proton's `wineopenxr` — a Wine builtin DLL that is the OpenXR runtime inside the Windows process, with D3D11 swapchains bridged through DXVK's Vulkan images. FallVision's runtime does the same but ends in Compositor Services (VPVulkan images → Metal textures), headset poses, Sense controllers as `oculus/touch_controller`, and Vision Pro hand tracking exposed through `XR_EXT_hand_tracking` (the mod already animates fingers from it).
 - Exit criteria: campaign intro in stereo with working hands.
 
 ### Gate 5 — Performance
