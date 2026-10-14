@@ -78,9 +78,9 @@ bitacora.md          working log for the next session
 
 ## Effort (Claude, not human)
 
-- Gate 1: the one that decides the project. Expect many small build/test cycles; each cycle is a CI Mac build, so budget minutes before starting.
+- Gate 1: the one that decides the project. Expect many small build/test cycles; the repo is public, so CI Mac minutes are not a constraint — on-device test time is.
 - Gates 2, 4: days of sessions each; mostly integration of known pieces.
 - Gate 3: unknown until the EA decision is made.
 - Gate 5: unknown.
 
-**Do not start Gate 1 while AVP, AstroVisionPro or VPKEngine are mid-build.** This is the most CI-hungry project of the set.
+**Do not start Gate 1 while AVP, AstroVisionPro or VPKEngine are mid-build.** Gate 1 needs sustained attention and many on-device test rounds; splitting it with other ports slows all of them.
